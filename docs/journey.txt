@@ -1,0 +1,65 @@
+- Create a booting Operating System
+- Add writing / input functionality
+- Make those inputs react and print other text
+
+
+Requirements:
+- qemu
+- nasm
+- i386-elf-gcc cross compiler
+
+Compile Kernel.c
+/opt/homebrew/opt/x86_64-elf-gcc/bin/x86_64-elf-gcc -ffreestanding -m32 -c kernel.c -o kernel.o
+
+Link Kernel and Linker Script
+/opt/homebrew/opt/x86_64-elf-gcc/bin/x86_64-elf-ld -T linker.ld -o kernel.bin kernel.o
+
+Compile to kernel.elf
+/opt/homebrew/opt/x86_64-elf-binutils/bin/x86_64-elf-ld -m elf_i386 -T linker.ld -o kernel.elf kernel.o
+
+Convert ELF to flat binary
+/opt/homebrew/opt/x86_64-elf-binutils/bin/x86_64-elf-objcopy -O binary kernel.elf kernel.bin
+OUTPUT: kernel.bin
+
+(Rebuild the boot sector)
+
+Combine kernel and boot sector into a single image
+cat ./bin/boot2.bin kernel.bin > os-image.bin
+
+
+--- PREVIOUS MAKEFILE ---
+# default build command
+all:
+# Build the bootsector using NASM
+	$(NASM) $(NASM_FLAGS) ./src/$(ASM_FILE).asm -o $(BIN_FILE)
+
+# Build the kernel entry assembly file
+	nasm "./src/kernel_entry.asm" -f elf -o "./cache/kernel_entry.o"
+
+# compile the kernel.c file --> kernel.o
+	/opt/homebrew/opt/x86_64-elf-gcc/bin/x86_64-elf-gcc -ffreestanding -m32 -c ./src/kernel.cpp -o ./cache/kernel.o
+# Compile the Zeroes file
+	nasm "./src/zeroes.asm" -f bin -o "Binaries/zeroes.bin"
+# Convert to ELF file
+	/opt/homebrew/opt/x86_64-elf-binutils/bin/x86_64-elf-ld -m elf_i386 -T linker.ld -o ./cache/kernel.elf ./cache/kernel.o
+# Convert ELF to flat binary
+	/opt/homebrew/opt/x86_64-elf-binutils/bin/x86_64-elf-objcopy -O binary ./cache/kernel.elf ./cache/kernel.bin
+# EXPECTED OUTPUT: kernel.bin
+# Combine kernel and booloader into a single image
+	cat ./cache/boot3.bin ./cache/kernel.bin > ./bin/image.bin
+
+# cleaup
+clean:
+	rm -f ./cache/boot3.bin
+	rm -f ./cache/kernel.bin
+	rm -f ./cache/kernel.elf
+	rm -f ./cache/kernel.o
+
+run:
+	qemu-system-i386 -drive format=raw,file=./bin/image.bin
+
+
+UTILS:
+/opt/homebrew/opt/x86_64-elf-binutils/bin/x86_64-elf-ld
+/opt/homebrew/opt/x86_64-elf-gcc/bin/x86_64-elf-gcc
+/opt/homebrew/opt/x86_64-elf-binutils/bin/x86_64-elf-objcopy
