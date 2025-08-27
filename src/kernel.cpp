@@ -1,24 +1,27 @@
-#include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 
-static inline void outb(uint16_t port, uint8_t val) {
-    asm volatile ("outb %0, %1" : : "a"(val), "Nd"(port));
+#define VGA_MEM 0xA0000
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 200
+
+// Draw a pixel in Mode 13h
+extern "C" void put_pixel(int x, int y, uint8_t color) {
+    if (x<0 || x>=SCREEN_WIDTH || y<0 || y>=SCREEN_HEIGHT) return;
+    volatile uint8_t* vga = (volatile uint8_t*)VGA_MEM;
+    vga[y * SCREEN_WIDTH + x] = color;
 }
 
-// Set VGA 320x200x256 graphics mode
-extern "C" void set_graphics_mode() {
-    asm volatile (
-        "mov $0x13, %%ax\n\t"
-        "int $0x10\n\t"
-        :
-        :
-        : "ax"
-    );
+// Draw a test pattern to verify graphics mode
+extern "C" void draw_test_pattern() {
+    for (int y=0; y<SCREEN_HEIGHT; y++) {
+        for (int x=0; x<SCREEN_WIDTH; x++) {
+            put_pixel(x, y, (x+y)%256); // color changes across screen
+        }
+    }
 }
 
-// main entry point
-extern "C" void main(){
-    set_graphics_mode();
-    while (1);
+// Main entry
+extern "C" void main() {
+    draw_test_pattern();              // fill screen with test colors
+    while(1); // halt
 }

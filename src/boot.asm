@@ -23,8 +23,8 @@ mov dl, [BOOT_DISK]
 int 0x13                ; no error management, do your homework!
 
                                     
-mov ah, 0x0
-mov al, 0x3
+mov ah, 0x00
+mov al, 0x13
 int 0x10                ; text mode
 
 
